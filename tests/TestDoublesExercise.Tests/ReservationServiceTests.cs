@@ -63,13 +63,25 @@ public sealed class ReservationServiceTests
         Assert.Single(sender.SentReservations);
     }
 
-    [Fact(Skip = "TODO: fehlende Verfügbarkeit prüfen")]
+    [Fact]
     public void Reserve_WithTooFewSeats_DoesNotSaveOrSend()
     {
         // Arrange: Stub mit 1 freiem Platz und Doubles für Repository und Sender.
+    
+        var availability = new Stub("EVT-1",1);
+        var repo = new Repository();
+        var sender = new Spy();
+        var service = new ReservationService(availability, repo, sender);
+
         // Act:     2 Plätze reservieren.
+        
+        var result = service.Reserve("user@gbs.net", "EVT-1", 2);
+        
         // Assert:  Ergebnis ist false; weder Speichern noch Senden wurde aufgerufen.
-        throw new NotImplementedException();
+        
+        Assert.False(result);
+        Assert.Empty(repo.SavedReservations);
+        Assert.Empty(sender.SentReservations);
     }
 
     [Fact(Skip = "TODO: Grenzfall testen")]
