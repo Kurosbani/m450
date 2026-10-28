@@ -46,18 +46,15 @@ public sealed class ReservationServiceTests
     {
         // Arrange: Stub mit 3 freien Plätzen, Repository mit erfolgreichem Speichern,
         //          eigener Sender-Spy und ReservationService.
-        
         var availability = new Stub("EVT-1",3);
         var repo = new Repository();
         var sender = new Spy();
         var service = new ReservationService(availability, repo, sender);
         
         // Act:     2 Plätze reservieren.
-        
         var result = service.Reserve("user@gbs.net", "EVT-1", 2);
         
         // Assert:  Ergebnis ist true.
-        
         Assert.True(result);
         Assert.Single(repo.SavedReservations);
         Assert.Single(sender.SentReservations);
@@ -67,39 +64,53 @@ public sealed class ReservationServiceTests
     public void Reserve_WithTooFewSeats_DoesNotSaveOrSend()
     {
         // Arrange: Stub mit 1 freiem Platz und Doubles für Repository und Sender.
-    
         var availability = new Stub("EVT-1",1);
         var repo = new Repository();
         var sender = new Spy();
         var service = new ReservationService(availability, repo, sender);
 
         // Act:     2 Plätze reservieren.
-        
         var result = service.Reserve("user@gbs.net", "EVT-1", 2);
         
-        // Assert:  Ergebnis ist false; weder Speichern noch Senden wurde aufgerufen.
-        
+        // Assert:  Ergebnis ist false; weder Speichern noch Senden wurde aufgerufen.    
         Assert.False(result);
         Assert.Empty(repo.SavedReservations);
         Assert.Empty(sender.SentReservations);
     }
 
-    [Fact(Skip = "TODO: Grenzfall testen")]
+    [Fact]
     public void Reserve_WithExactlyEnoughSeats_Succeeds()
     {
         // Arrange: Stub mit genau 2 freien Plätzen.
+        var availability = new Stub("EVT-1",2);
+        var repo = new Repository();
+        var sender = new Spy();
+        var service = new ReservationService(availability, repo, sender);
+
         // Act:     2 Plätze reservieren.
+        var result = service.Reserve("user@gbs.net", "EVT-1", 2);
+
         // Assert:  Ergebnis ist true.
-        throw new NotImplementedException();
+        Assert.True(result);
+        Assert.Single(repo.SavedReservations);
+        Assert.Single(sender.SentReservations);
     }
 
     [Fact(Skip = "TODO: Platzanzahl 0 testen")]
     public void Reserve_WithZeroSeats_ThrowsBeforeCallingDependencies()
     {
         // Arrange: Doubles, deren Aufrufe sich prüfen lassen.
+
+
+
         // Act:     0 Plätze reservieren.
+
+
+
         // Assert:  ArgumentOutOfRangeException; keine Abhängigkeit wurde aufgerufen.
-        throw new NotImplementedException();
+
+
+
     }
 
     [Fact(Skip = "TODO: negative Platzanzahl testen")]
@@ -124,18 +135,15 @@ public sealed class ReservationServiceTests
     public void Reserve_WithWhitespaceEmail_ThrowsBeforeCallingDependencies()
     {
         // Arrange: Handgeschriebene Doubles oder Moq gezielt auswählen.
-        
         var availability = new Mock<ISeatAvailability>(); 
         var repo = new Mock<IReservationRepository>();
         var sender = new Mock<IConfirmationSender>();
         var service = new ReservationService(availability.Object, repo.Object, sender.Object);
         
         // Act:     Mit einer E-Mail-Adresse aus Leerzeichen reservieren.
-
         Assert.Throws<ArgumentException>(() => service.Reserve("", "EVT-1", 1));
         
         // Assert:  ArgumentException; keine Abhängigkeit wurde aufgerufen.
-        
         availability.Verify(a => a.GetAvailableSeats(It.IsAny<string>()), Times.Never);
         repo.Verify(r => r.TrySave(It.IsAny<Reservation>()), Times.Never);
         sender.Verify(s => s.Send(It.IsAny<Reservation>()), Times.Never);
