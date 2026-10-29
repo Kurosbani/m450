@@ -199,9 +199,10 @@ public sealed class ReservationServiceTests
         var result = service.Reserve("user@gbs.net", "EVT-1", 2);
 
         // Assert:  Verify(..., Times.Never()) für TrySave.
-        availability.Verify(a => a.GetAvailableSeats(It.IsAny<string>()), Times.Never);
+        availability.Verify(a => a.GetAvailableSeats(It.IsAny<string>()), Times.Once);
         repo.Verify(r => r.TrySave(It.IsAny<Reservation>()), Times.Never);
         sender.Verify(s => s.Send(It.IsAny<Reservation>()), Times.Never);
+        Assert.False(result);
     }
 
     [Fact]
