@@ -106,28 +106,48 @@ public sealed class ReservationServiceTests
         var service = new ReservationService(availability, repo, sender);
 
         // Act:     0 Plätze reservieren.
-        var result = () => service.Reserve("user@gbs.net", "EVT-1", 0);
+        var result = new Action(() => service.Reserve("user@gbs.net", "EVT-1", 0));
 
         // Assert:  ArgumentOutOfRangeException; keine Abhängigkeit wurde aufgerufen.
         Assert.Throws<ArgumentOutOfRangeException>(result);
+        Assert.Empty(repo.SavedReservations);
+        Assert.Empty(sender.SentReservations);
     }
 
-    [Fact(Skip = "TODO: negative Platzanzahl testen")]
+    [Fact]
     public void Reserve_WithNegativeSeats_ThrowsBeforeCallingDependencies()
     {
         // Arrange: Doubles, deren Aufrufe sich prüfen lassen.
+        var availability = new Stub("EVT-1",2);
+        var repo = new Repository();
+        var sender = new Spy();
+        var service = new ReservationService(availability, repo, sender);
+
         // Act:     -1 Plätze reservieren.
+        var result = new Action(() => service.Reserve("user@gbs.net", "EVT-1", -1));
+
         // Assert:  ArgumentOutOfRangeException; keine Abhängigkeit wurde aufgerufen.
-        throw new NotImplementedException();
+        Assert.Throws<ArgumentOutOfRangeException>(result);
+        Assert.Empty(repo.SavedReservations);
+        Assert.Empty(sender.SentReservations);
     }
 
-    [Fact(Skip = "TODO: leeren Veranstaltungscode testen")]
+    [Fact]
     public void Reserve_WithEmptyEventCode_ThrowsBeforeCallingDependencies()
     {
         // Arrange: Doubles, deren Aufrufe sich prüfen lassen.
+        var availability = new Stub("EVT-1",2);
+        var repo = new Repository();
+        var sender = new Spy();
+        var service = new ReservationService(availability, repo, sender);        
+
         // Act:     Mit leerem Veranstaltungscode reservieren.
+        var result = new Action(() => service.Reserve("user@gbs.net", "", 1));
+
         // Assert:  ArgumentException; keine Abhängigkeit wurde aufgerufen.
-        throw new NotImplementedException();
+        Assert.Throws<ArgumentException>(result);
+        Assert.Empty(repo.SavedReservations);
+        Assert.Empty(sender.SentReservations);
     }
 
     [Fact]
@@ -148,30 +168,60 @@ public sealed class ReservationServiceTests
         sender.Verify(s => s.Send(It.IsAny<Reservation>()), Times.Never);
     }
 
-    [Fact(Skip = "TODO: fehlgeschlagenes Speichern testen")]
+    [Fact]
     public void Reserve_WhenSavingFails_DoesNotSendConfirmation()
     {
         // Arrange: Stub mit genügend Plätzen, Repository liefert false, eigener Spy.
+        var availability = new Stub("EVT-1",5);
+        var repo = new Repository(false);
+        var sender = new Spy();
+        var service = new ReservationService(availability, repo, sender);
+
         // Act:     Reservierung versuchen.
+        var result = service.Reserve("user@gbs.net", "EVT-1", 2);
+
         // Assert:  Ergebnis ist false und der Spy hat keinen Aufruf aufgezeichnet.
-        throw new NotImplementedException();
+        Assert.False(result);
+        Assert.Single(repo.SavedReservations);
+        Assert.Empty(sender.SentReservations);
     }
 
-    [Fact(Skip = "TODO: Moq für fehlenden Speicherversuch verwenden")]
+    [Fact]
     public void Reserve_WithTooFewSeats_DoesNotCallRepository()
     {
         // Arrange: Stub mit zu wenigen Plätzen und Mock<IReservationRepository>.
+        var availability = new Mock<ISeatAvailability>(); 
+        var repo = new Mock<IReservationRepository>();
+        var sender = new Mock<IConfirmationSender>();
+        var service = new ReservationService(availability.Object, repo.Object, sender.Object);
+
         // Act:     Reservierung versuchen.
+        var result = service.Reserve("user@gbs.net", "EVT-1", 2);
+
         // Assert:  Verify(..., Times.Never()) für TrySave.
-        throw new NotImplementedException();
+        availability.Verify(a => a.GetAvailableSeats(It.IsAny<string>()), Times.Never);
+        repo.Verify(r => r.TrySave(It.IsAny<Reservation>()), Times.Never);
+        sender.Verify(s => s.Send(It.IsAny<Reservation>()), Times.Never);
     }
 
-    [Fact(Skip = "Fortgeschrittene: ReserveBatch zuerst implementieren")]
+    [Fact]
     public void ReserveBatch_WhenCombinedSeatsExceedCapacity_DoesNotSaveOrSend()
     {
         // Arrange: Zwei Reservierungen für dieselbe Veranstaltung, die einzeln passen.
+        var availability = new Stub("EVT-1",4);
+        var repo = new Repository(false);
+        var sender = new Spy();
+        var service = new ReservationService(availability, repo, sender);
+
         // Act:     Nach Implementierung des Batch-Verfahrens beide zusammen reservieren.
+        var result = service.ReserveBatch([
+            ("user1@gbs.net", "EVT-1", 3),
+            ("user2@gbs.net", "EVT-1", 2)
+            ]);
+
         // Assert:  Ergebnis ist false; kein Batch-Speichern und keine Bestätigung.
-        throw new NotImplementedException();
+        Assert.False(result);
+        Assert.Empty(repo.SavedReservations);
+        Assert.Empty(sender.SentReservations);
     }
 }

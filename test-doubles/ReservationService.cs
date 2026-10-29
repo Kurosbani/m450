@@ -66,4 +66,43 @@ public sealed class ReservationService
         _sender.Send(reservation);
         return true;
     }
+
+    public bool ReserveBatch(List<(string CustomerEmail, string EventCode, int SeatCount)> reservations)
+    {
+        foreach (var (customerEmail, eventCode, seatCount) in reservations)
+        {
+            if (string.IsNullOrWhiteSpace(customerEmail))
+            {
+                throw new ArgumentException("Eine E-Mail-Adresse ist erforderlich.", nameof(customerEmail));
+            }
+
+
+            if (string.IsNullOrWhiteSpace(eventCode))
+            {
+                throw new ArgumentException("Ein Veranstaltungscode ist erforderlich.", nameof(eventCode));
+            }
+
+            if (seatCount <= 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(seatCount));
+            }
+
+            var availableSeats = _availability.GetAvailableSeats(eventCode);
+            if (availableSeats < seatCount)
+            {
+                return false;
+            }
+
+            for (int i = 0; i < seatCount; i++)
+            {
+                var reservation = new Reservation(customerEmail, eventCode, 1);
+                if (!_repository.TrySave(reservation))
+                {
+                    return false;
+                }
+                _sender.Send(reservation);
+            }
+        }
+        return true;
+    }
 }
