@@ -24,7 +24,7 @@ public sealed class ReservationService
     private readonly ISeatAvailability _availability;
     private readonly IReservationRepository _repository;
     private readonly IConfirmationSender _sender;
-
+    
     public ReservationService(
         ISeatAvailability availability,
         IReservationRepository repository,
@@ -66,43 +66,20 @@ public sealed class ReservationService
         _sender.Send(reservation);
         return true;
     }
-
-    public bool ReserveBatch(List<(string CustomerEmail, string EventCode, int SeatCount)> reservations)
+    
+    public bool ReserveBatch(IReadOnlyList<Reservation> entries)
     {
-        foreach (var (customerEmail, eventCode, seatCount) in reservations)
+        List<bool> allResults = new();
+        foreach (var entry in entries)
         {
-            if (string.IsNullOrWhiteSpace(customerEmail))
-            {
-                throw new ArgumentException("Eine E-Mail-Adresse ist erforderlich.", nameof(customerEmail));
-            }
-
-
-            if (string.IsNullOrWhiteSpace(eventCode))
-            {
-                throw new ArgumentException("Ein Veranstaltungscode ist erforderlich.", nameof(eventCode));
-            }
-
-            if (seatCount <= 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(seatCount));
-            }
-
-            var availableSeats = _availability.GetAvailableSeats(eventCode);
-            if (availableSeats < seatCount)
-            {
-                return false;
-            }
-
-            for (int i = 0; i < seatCount; i++)
-            {
-                var reservation = new Reservation(customerEmail, eventCode, 1);
-                if (!_repository.TrySave(reservation))
-                {
-                    return false;
-                }
-                _sender.Send(reservation);
-            }
+            Console.WriteLine("Entry:  {0}", entry);
+            allResults.Add(Reserve(entry.CustomerEmail, entry.EventCode, entry.SeatCount));
         }
-        return true;
+        
+        ArgumentNullException.ThrowIfNull(entries);
+        ArgumentNullException.ThrowIfNull(allResults);
+        
+        bool result = allResults.All(r => r);
+        return result;
     }
 }

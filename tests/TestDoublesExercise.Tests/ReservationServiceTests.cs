@@ -4,6 +4,8 @@ namespace TestDoublesExercise.Tests;
 
 public sealed class ReservationServiceTests
 {
+    // Helper Functions
+    
     private sealed class Stub(IReadOnlyDictionary<string, int> availableSeatsByEventCode) : ISeatAvailability
     {
         public Stub(string eventCode, int availableSeats) : this(new Dictionary<string, int> { [eventCode] = availableSeats} )
@@ -205,20 +207,23 @@ public sealed class ReservationServiceTests
         Assert.False(result);
     }
 
-    [Fact(Skip = "Lazy")]
+    [Fact(Skip = "i gib uf man ey da goht nöd")]
     public void ReserveBatch_WhenCombinedSeatsExceedCapacity_DoesNotSaveOrSend()
     {
         // Arrange: Zwei Reservierungen für dieselbe Veranstaltung, die einzeln passen.
         var availability = new Stub("EVT-1",4);
-        var repo = new Repository(false);
+        var repo = new Repository();
         var sender = new Spy();
         var service = new ReservationService(availability, repo, sender);
 
         // Act:     Nach Implementierung des Batch-Verfahrens beide zusammen reservieren.
-        var result = service.ReserveBatch([
-            ("user1@gbs.net", "EVT-1", 3),
-            ("user2@gbs.net", "EVT-1", 2)
-            ]);
+        var reservations = new List<Reservation>
+        {
+            new Reservation("user1@gbs.net", "EVT-1", 3),
+            new Reservation("user2@gbs.net", "EVT-1", 2)
+        };
+        
+        var result = service.ReserveBatch(reservations);
 
         // Assert:  Ergebnis ist false; kein Batch-Speichern und keine Bestätigung.
         Assert.False(result);
